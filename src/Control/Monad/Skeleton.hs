@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, GADTs, PolyKinds #-}
-module Control.Monad.Skeleton (Skeleton, necro, MonadView(..), rotten) where
+module Control.Monad.Skeleton (Skeleton, MonadView(..), bone, unbone) where
 import qualified Data.Sequence as Seq
 import Unsafe.Coerce
 import Control.Category
@@ -35,6 +35,7 @@ data View j k a b where
 
 (|>) :: Cat k a b -> k b c -> Cat k a c
 Cat s |> k = Cat (s Seq.|> unsafeCoerce k)
+{-# INLINE (|>) #-}
 
 viewL :: Cat k a b -> View k (Cat k) a b
 viewL (Cat s) = case Seq.viewl s of
@@ -43,15 +44,22 @@ viewL (Cat s) = case Seq.viewl s of
 
 instance Category (Cat k) where
   id = Cat Seq.empty
+  {-# INLINE id #-}
   Cat a . Cat b = Cat (b Seq.>< a)
+  {-# INLINE (.) #-}
 
 instance Functor (Skeleton t) where
   fmap = liftM
+  {-# INLINE fmap #-}
 
 instance Applicative (Skeleton t) where
   pure = return
+  {-# INLINE pure #-}
   (<*>) = ap
+  {-# INLINE (<*>) #-}
 
 instance Monad (Skeleton t) where
   return a = Skeleton (Return a) id
+  {-# INLINE return #-}
   Skeleton t c >>= k = Skeleton t (c |> Kleisli k)
+  {-# INLINE (>>=) #-}
