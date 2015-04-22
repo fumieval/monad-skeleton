@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, GADTs, PolyKinds #-}
+{-# LANGUAGE Trustworthy, RankNTypes, GADTs, PolyKinds #-}
 module Control.Monad.Skeleton (MonadView(..), hoistMonadView, Skeleton, bone, unbone, hoistSkeleton) where
 import qualified Data.Sequence as Seq
 import Unsafe.Coerce
