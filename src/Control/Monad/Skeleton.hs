@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, RankNTypes, GADTs, PolyKinds #-}
-module Control.Monad.Skeleton (MonadView(..), hoistMonadView, Skeleton, bone, unbone, hoistSkeleton) where
+module Control.Monad.Skeleton (MonadView(..), hoistMonadView, Skeleton, bone, unbone, boned, hoistSkeleton) where
 import qualified Data.Sequence as Seq
 import Unsafe.Coerce
 import Control.Category
@@ -8,6 +8,10 @@ import Control.Applicative
 import Control.Monad
 import GHC.Prim
 import Prelude hiding (id, (.))
+
+boned :: MonadView t (Skeleton t) a -> Skeleton t a
+boned t = Skeleton t id
+{-# INLINE boned #-}
 
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
 unbone (Skeleton (Return a) s) = case viewL s of
