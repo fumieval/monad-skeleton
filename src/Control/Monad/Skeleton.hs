@@ -1,5 +1,12 @@
 {-# LANGUAGE Trustworthy, RankNTypes, GADTs, PolyKinds #-}
-module Control.Monad.Skeleton (MonadView(..), hoistMonadView, Skeleton, bone, unbone, boned, hoistSkeleton) where
+module Control.Monad.Skeleton (MonadView(..)
+  , hoistMV
+  , iterMV
+  , Skeleton
+  , bone
+  , unbone
+  , boned
+  , hoistSkeleton) where
 import qualified Data.Sequence as Seq
 import Unsafe.Coerce
 import Control.Category
@@ -26,7 +33,7 @@ bone t = Skeleton (t :>>= return) id
 {-# INLINABLE bone #-}
 
 hoistSkeleton :: (forall x. s x -> t x) -> Skeleton s a -> Skeleton t a
-hoistSkeleton f (Skeleton v c) = Skeleton (hoistMonadView f (hoistSkeleton f) v)
+hoistSkeleton f (Skeleton v c) = Skeleton (hoistMV f (hoistSkeleton f) v)
   (transCat (transKleisli (hoistSkeleton f)) c)
 
 data MonadView t m x where
@@ -34,9 +41,15 @@ data MonadView t m x where
   (:>>=) :: t a -> (a -> m b) -> MonadView t m b
 infixl 1 :>>=
 
-hoistMonadView :: (forall x. s x -> t x) -> (m a -> n a) -> MonadView s m a -> MonadView t n a
-hoistMonadView _ _ (Return a) = Return a
-hoistMonadView f g (t :>>= k) = f t :>>= g . k
+hoistMV :: (forall x. s x -> t x) -> (m a -> n a) -> MonadView s m a -> MonadView t n a
+hoistMV _ _ (Return a) = Return a
+hoistMV f g (t :>>= k) = f t :>>= g . k
+
+iterMV :: Monad m => (t a -> MonadView m t a) -> t a -> m a
+iterMV f = go where
+  go t = case f t of
+    m :>>= k -> m >>= go . k
+    Return a -> return a
 
 data Skeleton t a where
   Skeleton :: MonadView t (Skeleton t) x -> Cat (Kleisli (Skeleton t)) x a -> Skeleton t a
