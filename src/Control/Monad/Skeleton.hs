@@ -98,7 +98,7 @@ viewL :: Cat k a b -> View k (Cat k) a b
 viewL (Cat s) = case Seq.viewl s of
   Seq.EmptyL -> unsafeCoerce Empty
   a Seq.:< b -> unsafeCoerce (:|) a b
-{-# INLINE viewl #-}
+{-# INLINE viewL #-}
 
 instance Category (Cat k) where
   id = Cat Seq.empty
