@@ -51,9 +51,15 @@ data MonadView t m x where
   (:>>=) :: t a -> (a -> m b) -> MonadView t m b
 infixl 1 :>>=
 
+instance Functor m => Functor (MonadView t m) where
+  fmap f (Return a) = Return (f a)
+  fmap f (t :>>= k) = t :>>= fmap f . k
+  {-# INLINE fmap #-}
+
 hoistMV :: (forall x. s x -> t x) -> (m a -> n a) -> MonadView s m a -> MonadView t n a
 hoistMV _ _ (Return a) = Return a
 hoistMV f g (t :>>= k) = f t :>>= g . k
+{-# INLINE hoistMV #-}
 
 iterMV :: Monad m => (t a -> MonadView m t a) -> t a -> m a
 iterMV f = go where
@@ -92,6 +98,7 @@ viewL :: Cat k a b -> View k (Cat k) a b
 viewL (Cat s) = case Seq.viewl s of
   Seq.EmptyL -> unsafeCoerce Empty
   a Seq.:< b -> unsafeCoerce (:|) a b
+{-# INLINE viewl #-}
 
 instance Category (Cat k) where
   id = Cat Seq.empty
