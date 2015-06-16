@@ -4,6 +4,7 @@ module Control.Monad.Skeleton (MonadView(..)
   , iterMV
   , Skeleton
   , bone
+  , debone
   , unbone
   , boned
   , hoistSkeleton) where
@@ -16,22 +17,31 @@ import Control.Monad
 import GHC.Prim
 import Prelude hiding (id, (.))
 
+-- | Re-add a bone.
 boned :: MonadView t (Skeleton t) a -> Skeleton t a
 boned t = Skeleton t id
 {-# INLINE boned #-}
 
-unbone :: Skeleton t a -> MonadView t (Skeleton t) a
-unbone (Skeleton (Return a) s) = case viewL s of
+-- | Pick a bone from a 'Skeleton'.
+debone :: Skeleton t a -> MonadView t (Skeleton t) a
+debone (Skeleton (Return a) s) = case viewL s of
   Empty -> Return a
   Kleisli k :| c -> case k a of
-    Skeleton h t -> unbone $ Skeleton h (c . t)
-unbone (Skeleton (t :>>= k) s) = t :>>= \a -> case k a of
+    Skeleton h t -> debone $ Skeleton h (c . t)
+debone (Skeleton (t :>>= k) s) = t :>>= \a -> case k a of
   Skeleton h t -> Skeleton h (s . t)
 
+-- | Uncommon synonym for 'debone'.
+unbone :: Skeleton t a -> MonadView t (Skeleton t) a
+unbone = debone
+{-# INLINE unbone #-}
+
+-- | A skeleton that has only one bone.
 bone :: t a -> Skeleton t a
 bone t = Skeleton (t :>>= return) id
 {-# INLINABLE bone #-}
 
+-- | Lift a transformation between bones into transformation between skeletons.
 hoistSkeleton :: (forall x. s x -> t x) -> Skeleton s a -> Skeleton t a
 hoistSkeleton f (Skeleton v c) = Skeleton (hoistMV f (hoistSkeleton f) v)
   (transCat (transKleisli (hoistSkeleton f)) c)
@@ -50,7 +60,13 @@ iterMV f = go where
   go t = case f t of
     m :>>= k -> m >>= go . k
     Return a -> return a
+{-# INLINE iterMV #-}
 
+-- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
+-- Skeletons can be fleshed out by getting transformed to other monads.
+-- The implementation is based on
+-- <http://wwwhome.cs.utwente.nl/~jankuper/fp-dag/pref.pdf Reflection without Remorse>
+-- so it provides efficient ('>>=') and 'debone', monadic reflection.
 data Skeleton t a where
   Skeleton :: MonadView t (Skeleton t) x -> Cat (Kleisli (Skeleton t)) x a -> Skeleton t a
 
