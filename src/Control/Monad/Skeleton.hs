@@ -24,10 +24,10 @@ boned t = Skeleton t id
 
 -- | Pick a bone from a 'Skeleton'.
 debone :: Skeleton t a -> MonadView t (Skeleton t) a
-debone (Skeleton (Return a) s) = case viewL s of
-  Empty -> Return a
-  Kleisli k :| c -> case k a of
-    Skeleton h t -> debone $ Skeleton h (c . t)
+debone (Skeleton (Return a) s) = case unsafeCoerce Seq.viewl s of
+  Seq.EmptyL -> unsafeCoerce Return a
+  Kleisli k Seq.:< c -> case k a of
+    Skeleton h t -> debone $ Skeleton h (unsafeCoerce c . t)
 debone (Skeleton (t :>>= k) s) = t :>>= \a -> case k a of
   Skeleton h t -> Skeleton h (s . t)
 
@@ -74,7 +74,7 @@ iterMV f = go where
 -- <http://wwwhome.cs.utwente.nl/~jankuper/fp-dag/pref.pdf Reflection without Remorse>
 -- so it provides efficient ('>>=') and 'debone', monadic reflection.
 data Skeleton t a where
-  Skeleton :: MonadView t (Skeleton t) x -> Cat (Kleisli (Skeleton t)) x a -> Skeleton t a
+  Skeleton :: !(MonadView t (Skeleton t) x) -> !(Cat (Kleisli (Skeleton t)) x a) -> Skeleton t a
 
 newtype Cat k a b = Cat (Seq.Seq Any)
 
@@ -118,6 +118,4 @@ instance Applicative (Skeleton t) where
 
 instance Monad (Skeleton t) where
   return a = Skeleton (Return a) id
-  {-# INLINE return #-}
   Skeleton t c >>= k = Skeleton t (c |> Kleisli k)
-  {-# INLINE (>>=) #-}
