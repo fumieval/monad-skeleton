@@ -70,7 +70,7 @@ iterMV f = go where
 {-# INLINE iterMV #-}
 
 data Spine t m a where
-  Spine :: MonadView t m a -> Cat (Kleisli m) a b -> Spine t m b
+  Spine :: !(MonadView t m a) -> !(Cat (Kleisli m) a b) -> Spine t m b
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
