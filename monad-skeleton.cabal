@@ -1,5 +1,5 @@
 name:                monad-skeleton
-version:             0.1.2.1
+version:             0.1.2.2
 synopsis:            An undead monad
 description:         A simple operational monad based on Reflection without Remorse
 homepage:            https://github.com/fumieval/monad-skeleton
@@ -19,7 +19,8 @@ source-repository head
   location: https://github.com/fumieval/monad-skeleton.git
 
 library
-  exposed-modules:     Control.Monad.Skeleton
+  exposed-modules:     Control.Monad.Skeleton, Control.Monad.Skeleton.Internal
   build-depends:       base == 4.*, containers, ghc-prim
   hs-source-dirs: src
+  ghc-options: -Wall
   default-language:    Haskell2010
