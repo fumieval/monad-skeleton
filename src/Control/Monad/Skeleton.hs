@@ -8,6 +8,7 @@ module Control.Monad.Skeleton (MonadView(..)
   , unbone
   , boned
   , hoistSkeleton
+  , Spine(..)
   ) where
 import Control.Arrow
 import Control.Applicative
