@@ -75,9 +75,6 @@ data Spine t m a where
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
--- The implementation is based on
--- <http://wwwhome.cs.utwente.nl/~jankuper/fp-dag/pref.pdf Reflection without Remorse>
--- so it provides efficient ('>>=') and 'debone', monadic reflection.
 newtype Skeleton t a = Skeleton { unSkeleton :: Spine t (Skeleton t) a }
 
 instance Functor (Skeleton t) where
