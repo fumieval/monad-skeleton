@@ -48,6 +48,7 @@ hoistSkeleton f = go where
     (transCat (transKleisli go) c)
 {-# INLINE hoistSkeleton #-}
 
+-- | A deconstructed action
 data MonadView t m x where
   Return :: a -> MonadView t m a
   (:>>=) :: t a -> (a -> m b) -> MonadView t m b
@@ -58,11 +59,13 @@ instance Functor m => Functor (MonadView t m) where
   fmap f (t :>>= k) = t :>>= fmap f . k
   {-# INLINE fmap #-}
 
+-- | Transform the action and the continuation.
 hoistMV :: (forall x. s x -> t x) -> (m a -> n a) -> MonadView s m a -> MonadView t n a
 hoistMV _ _ (Return a) = Return a
 hoistMV f g (t :>>= k) = f t :>>= g . k
 {-# INLINE hoistMV #-}
 
+-- | Join 'MonadView' recursively.
 iterMV :: Monad m => (t a -> MonadView m t a) -> t a -> m a
 iterMV f = go where
   go t = case f t of
@@ -75,9 +78,7 @@ data Spine t m a where
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
--- The implementation is based on
--- <http://wwwhome.cs.utwente.nl/~jankuper/fp-dag/pref.pdf Reflection without Remorse>
--- so it provides efficient ('>>=') and 'debone', monadic reflection.
+-- It provides O(1) ('>>=') and 'debone', monadic reflection.
 newtype Skeleton t a = Skeleton { unSkeleton :: Spine t (Skeleton t) a }
 
 instance Functor (Skeleton t) where
