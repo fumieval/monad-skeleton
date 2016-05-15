@@ -20,7 +20,7 @@ source-repository head
 
 library
   exposed-modules:     Control.Monad.Skeleton, Control.Monad.Skeleton.Internal
-  build-depends:       base == 4.*, containers, ghc-prim
+  build-depends:       base == 4.*, ghc-prim
   hs-source-dirs: src
   ghc-options: -Wall
   default-language:    Haskell2010
