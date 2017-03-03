@@ -7,6 +7,7 @@ import Control.Monad.Skeleton
 import Control.Monad.Skeleton.Internal
 import Prelude hiding (id, (.))
 
+-- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
 newtype Zombie t a = Zombie { unZombie :: [Spine t (Zombie t) a] }
 
 instance Functor (Zombie t) where
