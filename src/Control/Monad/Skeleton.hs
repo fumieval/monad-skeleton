@@ -75,6 +75,7 @@ iterMV f = go where
     Return a -> return a
 {-# INLINE iterMV #-}
 
+-- | The spine of skeleta.
 data Spine t m a where
   Spine :: MonadView t m a -> Cat (Kleisli m) a b -> Spine t m b
 
