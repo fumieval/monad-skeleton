@@ -1,5 +1,5 @@
 {-# LANGUAGE PolyKinds, GADTs, Rank2Types, ScopedTypeVariables #-}
-module Control.Monad.Skeleton.Internal (Cat, transCat, (|>), viewL) where
+module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL) where
 
 import Control.Category
 

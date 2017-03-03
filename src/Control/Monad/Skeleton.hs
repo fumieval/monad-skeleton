@@ -53,7 +53,7 @@ hoistSkeleton f = go where
 -- | A deconstructed action
 data MonadView t m x where
   Return :: a -> MonadView t m a
-  (:>>=) :: t a -> (a -> m b) -> MonadView t m b
+  (:>>=) :: !(t a) -> (a -> m b) -> MonadView t m b
 infixl 1 :>>=
 
 instance Functor m => Functor (MonadView t m) where
@@ -76,7 +76,7 @@ iterMV f = go where
 {-# INLINE iterMV #-}
 
 data Spine t m a where
-  Spine :: !(MonadView t m a) -> Cat (Kleisli m) a b -> Spine t m b
+  Spine :: MonadView t m a -> Cat (Kleisli m) a b -> Spine t m b
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
@@ -92,6 +92,9 @@ instance Applicative (Skeleton t) where
   {-# INLINE pure #-}
   (<*>) = ap
   {-# INLINE (<*>) #-}
+  (*>) = (>>)
+  {-# INLINE (*>) #-}
+  a <* b = a >>= \x -> b >> return x
 
 instance Monad (Skeleton t) where
   return a = Skeleton $ Spine (Return a) id
