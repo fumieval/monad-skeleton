@@ -35,6 +35,7 @@ debone (Skeleton (Spine v s)) = case v of
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
 unbone = debone
 {-# INLINE unbone #-}
+{-# DEPRECATED unbone "Use debone instead" #-}
 
 -- | A skeleton that has only one bone.
 bone :: t a -> Skeleton t a
