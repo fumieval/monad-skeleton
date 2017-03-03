@@ -1,5 +1,5 @@
 name:                monad-skeleton
-version:             0.1.2.2
+version:             0.1.2.3
 synopsis:            An undead monad
 description:         A simple operational monad based on Reflection without Remorse
 homepage:            https://github.com/fumieval/monad-skeleton

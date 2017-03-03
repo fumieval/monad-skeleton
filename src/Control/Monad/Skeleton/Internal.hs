@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, GADTs, Rank2Types #-}
+{-# LANGUAGE PolyKinds, GADTs, Rank2Types, ScopedTypeVariables #-}
 module Control.Monad.Skeleton.Internal (Cat, transCat, (|>), viewL) where
 
 import Control.Category
@@ -18,13 +18,17 @@ transCat _ Empty = Empty
 s |> k = Tree s (Leaf k)
 {-# INLINE (|>) #-}
 
-viewL :: Cat k a b
+viewL :: forall k a b r. Cat k a b
   -> ((a ~ b) => r)
   -> (forall x. k a x -> Cat k x b -> r)
   -> r
 viewL Empty e _ = e
 viewL (Leaf k) _ r = k `r` Empty
-viewL (Tree a b) e r = viewL a (viewL b e r) $ \k t -> k `r` Tree t b
+viewL (Tree a b) e r = go a b where
+  go :: Cat k a x -> Cat k x b -> r
+  go Empty t = viewL t e r
+  go (Leaf k) t = r k t
+  go (Tree c d) t = go c (Tree d t)
 
 instance Category (Cat k) where
   id = Empty

@@ -1,4 +1,5 @@
-{-# LANGUAGE Trustworthy, RankNTypes, GADTs, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, Trustworthy, RankNTypes, GADTs, ScopedTypeVariables #-}
+{-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 module Control.Monad.Skeleton (MonadView(..)
   , hoistMV
   , iterMV
@@ -25,10 +26,11 @@ boned t = Skeleton (Spine t id)
 
 -- | Pick a bone from a 'Skeleton'.
 debone :: Skeleton t a -> MonadView t (Skeleton t) a
-debone (Skeleton (Spine (Return a) s)) = viewL s (Return a) $ \(Kleisli k) c -> case k a of
-  Skeleton (Spine h t) -> debone $ Skeleton $ Spine h (c . t)
-debone (Skeleton (Spine (t :>>= k) s)) = t :>>= \a -> case k a of
-  Skeleton (Spine h c) -> Skeleton (Spine h (s . c))
+debone (Skeleton (Spine v s)) = case v of
+  Return a -> viewL s (Return a) $ \(Kleisli k) c -> case k a of
+    Skeleton (Spine h t) -> debone $ Skeleton $ Spine h (c . t)
+  t :>>= k -> t :>>= \a -> case k a of
+    Skeleton (Spine h c) -> Skeleton (Spine h (s . c))
 
 -- | Uncommon synonym for 'debone'.
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
@@ -74,7 +76,7 @@ iterMV f = go where
 {-# INLINE iterMV #-}
 
 data Spine t m a where
-  Spine :: !(MonadView t m a) -> !(Cat (Kleisli m) a b) -> Spine t m b
+  Spine :: !(MonadView t m a) -> Cat (Kleisli m) a b -> Spine t m b
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
@@ -93,9 +95,7 @@ instance Applicative (Skeleton t) where
 
 instance Monad (Skeleton t) where
   return a = Skeleton $ Spine (Return a) id
-  {-# INLINE return #-}
   Skeleton (Spine t c) >>= k = Skeleton $ Spine t (c |> Kleisli k)
-  {-# INLINE (>>=) #-}
 
 transKleisli :: (m b -> n b) -> Kleisli m a b -> Kleisli n a b
 transKleisli f = unsafeCoerce (f.)
