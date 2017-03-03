@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns, Trustworthy, RankNTypes, GADTs, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 module Control.Monad.Skeleton (MonadView(..)
   , hoistMV
   , iterMV
