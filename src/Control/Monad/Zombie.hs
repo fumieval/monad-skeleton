@@ -26,6 +26,10 @@ instance Monad (Zombie t) where
   return a = Zombie [Spine (Return a) id]
   Zombie xs >>= k = Zombie $ map (graftSpine $ Leaf $ Kleisli k) xs
 
+instance MonadPlus (Zombie t) where
+  mzero = empty
+  mplus = (<|>)
+
 -- | Turn a decomposed form into a composed form.
 embalm :: MonadView t (Zombie t) a -> Zombie t a
 embalm t = Zombie [Spine t id]
