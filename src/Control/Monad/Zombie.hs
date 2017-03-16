@@ -30,9 +30,14 @@ instance MonadPlus (Zombie t) where
   mzero = empty
   mplus = (<|>)
 
+liftZ :: t a -> Zombie t a
+liftZ t = embalm (t :>>= return)
+{-# INLINE liftZ #-}
+
 -- | Turn a decomposed form into a composed form.
 embalm :: MonadView t (Zombie t) a -> Zombie t a
 embalm t = Zombie [Spine t id]
+{-# INLINE embalm #-}
 
 -- | Decompose a zombie as a list of possibilities.
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
