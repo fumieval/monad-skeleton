@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Trustworthy, RankNTypes, GADTs, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, RankNTypes, GADTs, ScopedTypeVariables #-}
 module Control.Monad.Skeleton (MonadView(..)
   , hoistMV
   , iterMV
@@ -16,7 +16,6 @@ import Control.Arrow
 import Control.Applicative
 import Control.Monad
 import Control.Category
-import Unsafe.Coerce
 import Control.Monad.Skeleton.Internal
 import Prelude hiding (id, (.))
 
@@ -107,7 +106,3 @@ instance Applicative (Skeleton t) where
 instance Monad (Skeleton t) where
   return a = Skeleton $ Spine (Return a) id
   Skeleton (Spine t c) >>= k = Skeleton $ Spine t (c |> Kleisli k)
-
-transKleisli :: (m b -> n b) -> Kleisli m a b -> Kleisli n a b
-transKleisli f = unsafeCoerce (f.)
-{-# INLINE transKleisli #-}

@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types, ScopedTypeVariables #-}
 module Control.Monad.Zombie where
 import Control.Applicative
 import Control.Arrow
@@ -30,6 +31,7 @@ instance MonadPlus (Zombie t) where
   mzero = empty
   mplus = (<|>)
 
+-- | Lift a unit action
 liftZ :: t a -> Zombie t a
 liftZ t = embalm (t :>>= return)
 {-# INLINE liftZ #-}
@@ -48,3 +50,11 @@ disembalm (Zombie ss) = do
       Zombie ss' -> disembalm $ Zombie $ map (graftSpine c') ss'
     t :>>= k -> return $ t :>>= \a -> case k a of
       Zombie ss' -> Zombie $ map (graftSpine c) ss'
+
+-- | Like 'hoistSkeleton'
+hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
+hoistZombie f = go where
+  go :: forall x. Zombie s x -> Zombie t x
+  go (Zombie ss) = Zombie [Spine (hoistMV f go v) (transCat (transKleisli go) c)
+    | Spine v c <- ss]
+{-# INLINE hoistZombie #-}

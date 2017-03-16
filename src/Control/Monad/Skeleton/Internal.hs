@@ -1,7 +1,9 @@
-{-# LANGUAGE PolyKinds, GADTs, Rank2Types, ScopedTypeVariables #-}
-module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL) where
+{-# LANGUAGE PolyKinds, GADTs, Rank2Types, ScopedTypeVariables, Trustworthy #-}
+module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL, transKleisli) where
 
+import Control.Arrow
 import Control.Category
+import Unsafe.Coerce
 
 data Cat k a b where
   Empty :: Cat k a a
@@ -35,3 +37,7 @@ instance Category (Cat k) where
   {-# INLINE id #-}
   (.) = flip Tree
   {-# INLINE (.) #-}
+
+transKleisli :: (m b -> n b) -> Kleisli m a b -> Kleisli n a b
+transKleisli f = unsafeCoerce (f Prelude..)
+{-# INLINE transKleisli #-}
