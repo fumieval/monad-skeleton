@@ -1,5 +1,5 @@
 name:                monad-skeleton
-version:             0.1.3
+version:             0.1.3.1
 synopsis:            Monads of program skeleta
 description:         Fast operational monad library
 homepage:            https://github.com/fumieval/monad-skeleton
