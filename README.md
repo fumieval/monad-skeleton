@@ -23,7 +23,7 @@ GADTs are handy to define instructions:
 
 ```haskell
 data Interaction x where
-  Get :: Interacton String
+  Get :: Interaction String
   Put :: String -> Interaction ()
 
 echo :: Skeleton Interaction ()
