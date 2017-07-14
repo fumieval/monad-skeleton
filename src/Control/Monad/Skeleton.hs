@@ -5,6 +5,7 @@ module Control.Monad.Skeleton (MonadView(..)
   , Skeleton(..)
   , bone
   , debone
+  , deboneBy
   , unbone
   , boned
   , hoistSkeleton
@@ -31,6 +32,19 @@ debone (Skeleton (Spine v c)) = case v of
     Skeleton s -> debone $ Skeleton $ graftSpine c' s
   t :>>= k -> t :>>= \a -> case k a of
     Skeleton s -> Skeleton (graftSpine c s)
+
+-- | Pick a bone from a 'Skeleton' by a function.
+-- It's useful when used with @LambdaCase@.
+--
+-- Usecase:
+--
+-- >  interpretM :: Monad m => Skeleton m a -> m a
+-- >  interpretM = deboneBy $ \case
+-- >    Return a -> return a
+-- >    x :>>= f -> x >>= interpretM . f
+deboneBy :: Skeleton t a -> (MonadView t (Skeleton t) a -> r) -> r
+deboneBy s f = f (debone s)
+{-# INLINE deboneBy #-}
 
 -- | Uncommon synonym for 'debone'.
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
