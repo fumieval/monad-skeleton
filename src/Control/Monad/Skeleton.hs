@@ -42,8 +42,8 @@ debone (Skeleton (Spine v c)) = case v of
 -- >  interpretM = deboneBy $ \case
 -- >    Return a -> return a
 -- >    x :>>= f -> x >>= interpretM . f
-deboneBy :: Skeleton t a -> (MonadView t (Skeleton t) a -> r) -> r
-deboneBy s f = f (debone s)
+deboneBy :: (MonadView t (Skeleton t) a -> r) -> Skeleton t a -> r
+deboneBy f s = f (debone s)
 {-# INLINE deboneBy #-}
 
 -- | Uncommon synonym for 'debone'.
