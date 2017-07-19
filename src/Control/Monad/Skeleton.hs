@@ -8,9 +8,6 @@ module Control.Monad.Skeleton (MonadView(..)
   , unbone
   , boned
   , hoistSkeleton
-  -- * internal
-  , Spine(..)
-  , graftSpine
   ) where
 import Control.Arrow
 import Control.Applicative
@@ -77,15 +74,6 @@ iterMV f = go where
     m :>>= k -> m >>= go . k
     Return a -> return a
 {-# INLINE iterMV #-}
-
--- | The spine of skeleta.
-data Spine t m a where
-  Spine :: MonadView t m a -> Cat (Kleisli m) a b -> Spine t m b
-
--- | Extend a spine.
-graftSpine :: Cat (Kleisli m) a b -> Spine t m a -> Spine t m b
-graftSpine c (Spine v d) = Spine v (c . d)
-{-# INLINE graftSpine #-}
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.

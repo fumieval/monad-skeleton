@@ -1,12 +1,22 @@
-{-# LANGUAGE Rank2Types, ScopedTypeVariables #-}
+{-# LANGUAGE Rank2Types, ScopedTypeVariables, GADTs #-}
 module Control.Monad.Zombie where
 import Control.Applicative
 import Control.Arrow
 import Control.Category
 import Control.Monad
 import Control.Monad.Skeleton
-import Control.Monad.Skeleton.Internal
+import Control.Monad.Skeleton.Internal (transKleisli)
+import Control.Monad.Zombie.Internal
 import Prelude hiding (id, (.))
+
+-- | The spine of skeleta.
+data Spine t m a where
+  Spine :: MonadView t m a -> Cat (Kleisli m) a b -> Spine t m b
+
+-- | Extend a spine.
+graftSpine :: Cat (Kleisli m) a b -> Spine t m a -> Spine t m b
+graftSpine c (Spine v d) = Spine v (Tree d c)
+{-# INLINE graftSpine #-}
 
 -- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
 newtype Zombie t a = Zombie { unZombie :: [Spine t (Zombie t) a] }

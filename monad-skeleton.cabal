@@ -26,6 +26,7 @@ library
   exposed-modules:     Control.Monad.Skeleton
     , Control.Monad.Skeleton.Internal
     , Control.Monad.Zombie
+    , Control.Monad.Zombie.Internal
   build-depends:       base == 4.*
   hs-source-dirs: src
   ghc-options: -Wall
