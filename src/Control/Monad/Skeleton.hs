@@ -21,16 +21,18 @@ import Prelude hiding (id, (.))
 
 -- | Re-add a bone.
 boned :: MonadView t (Skeleton t) a -> Skeleton t a
-boned t = Skeleton (Spine t id)
+boned (Return a) = ReturnS a
+boned (t :>>= k) = BindS t $ Leaf $ Kleisli k
 {-# INLINE boned #-}
 
 -- | Pick a bone from a 'Skeleton'.
 debone :: Skeleton t a -> MonadView t (Skeleton t) a
-debone (Skeleton (Spine v c)) = case v of
-  Return a -> viewL c (Return a) $ \(Kleisli k) c' -> case k a of
-    Skeleton s -> debone $ Skeleton $ graftSpine c' s
-  t :>>= k -> t :>>= \a -> case k a of
-    Skeleton s -> Skeleton (graftSpine c s)
+debone (ReturnS a) = Return a
+debone (BindS t c0) = t :>>= go c0 where
+  go :: Cat (Kleisli (Skeleton t)) a b -> a -> Skeleton t b
+  go c a = viewL c (ReturnS a) $ \(Kleisli k) c' -> case k a of
+    ReturnS b -> go c' b
+    BindS t' c'' -> BindS t' (c' . c'')
 
 -- | Uncommon synonym for 'debone'.
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
@@ -40,15 +42,15 @@ unbone = debone
 
 -- | A skeleton that has only one bone.
 bone :: t a -> Skeleton t a
-bone t = Skeleton (Spine (t :>>= return) id)
+bone t = BindS t id
 {-# INLINABLE bone #-}
 
 -- | Lift a transformation between bones into transformation between skeletons.
 hoistSkeleton :: forall s t a. (forall x. s x -> t x) -> Skeleton s a -> Skeleton t a
 hoistSkeleton f = go where
   go :: forall x. Skeleton s x -> Skeleton t x
-  go (Skeleton (Spine v c)) = Skeleton $ Spine (hoistMV f go v)
-    (transCat (transKleisli go) c)
+  go (ReturnS a) = ReturnS a
+  go (BindS t c) = BindS (f t) $ transCat (transKleisli go) c
 {-# INLINE hoistSkeleton #-}
 
 -- | A deconstructed action
@@ -88,7 +90,9 @@ graftSpine c (Spine v d) = Spine v (c . d)
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
 -- Skeletons can be fleshed out by getting transformed to other monads.
 -- It provides O(1) ('>>=') and 'debone', the monadic reflection.
-newtype Skeleton t a = Skeleton { unSkeleton :: Spine t (Skeleton t) a }
+data Skeleton t a where
+  ReturnS :: a -> Skeleton t a
+  BindS :: t a -> Cat (Kleisli (Skeleton t)) a b -> Skeleton t b
 
 instance Functor (Skeleton t) where
   fmap = liftM
@@ -104,5 +108,6 @@ instance Applicative (Skeleton t) where
   a <* b = a >>= \x -> b >> return x
 
 instance Monad (Skeleton t) where
-  return a = Skeleton $ Spine (Return a) id
-  Skeleton (Spine t c) >>= k = Skeleton $ Spine t (c |> Kleisli k)
+  return = ReturnS
+  ReturnS a >>= k = k a
+  BindS t c >>= k = BindS t (c |> Kleisli k)
