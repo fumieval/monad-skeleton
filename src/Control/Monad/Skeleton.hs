@@ -27,9 +27,9 @@ debone :: Skeleton t a -> MonadView t (Skeleton t) a
 debone (ReturnS a) = Return a
 debone (BindS t c0) = t :>>= go c0 where
   go :: Cat (Kleisli (Skeleton t)) a b -> a -> Skeleton t b
-  go c a = viewL c (ReturnS a) $ \(Kleisli k) c' -> case k a of
+  go c a = viewL c (\(Kleisli k) -> k a) $ \(Kleisli k) c' -> case k a of
     ReturnS b -> go c' b
-    BindS t' c'' -> BindS t' (c' . c'')
+    BindS t' c'' -> BindS t' (Tree c'' c')
 
 -- | Uncommon synonym for 'debone'.
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
@@ -39,7 +39,7 @@ unbone = debone
 
 -- | A skeleton that has only one bone.
 bone :: t a -> Skeleton t a
-bone t = BindS t id
+bone t = BindS t $ Leaf $ Kleisli ReturnS
 {-# INLINABLE bone #-}
 
 -- | Lift a transformation between bones into transformation between skeletons.
