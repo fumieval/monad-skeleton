@@ -2,7 +2,7 @@ monad-skeleton
 ======================
 
 [![Build Status](https://travis-ci.org/fumieval/monad-skeleton.svg?branch=master)](https://travis-ci.org/fumieval/monad-skeleton)
-[![Hackage](https://budueba.com/hackage/monad-skeleton)](https://hackage.haskell.org/package/monad-skeleton)
+[![Hackage](https://img.shields.io/hackage/v/monad-skeleton.svg)](https://hackage.haskell.org/package/monad-skeleton)
 
 This package provides `Skeleton`, an operational monad. The internal encoding
 gives O(1) bind and monadic reflection.

@@ -5,6 +5,7 @@ module Control.Monad.Skeleton (MonadView(..)
   , Skeleton(..)
   , bone
   , debone
+  , deboneBy
   , unbone
   , boned
   , hoistSkeleton
@@ -30,6 +31,19 @@ debone (BindS t c0) = t :>>= go c0 where
   go c a = viewL c (\(Kleisli k) -> k a) $ \(Kleisli k) c' -> case k a of
     ReturnS b -> go c' b
     BindS t' c'' -> BindS t' (Tree c'' c')
+
+-- | Pick a bone from a 'Skeleton' by a function.
+-- It's useful when used with @LambdaCase@.
+--
+-- Usecase:
+--
+-- >  interpretM :: Monad m => Skeleton m a -> m a
+-- >  interpretM = deboneBy $ \case
+-- >    Return a -> return a
+-- >    x :>>= f -> x >>= interpretM . f
+deboneBy :: (MonadView t (Skeleton t) a -> r) -> Skeleton t a -> r
+deboneBy f s = f (debone s)
+{-# INLINE deboneBy #-}
 
 -- | Uncommon synonym for 'debone'.
 unbone :: Skeleton t a -> MonadView t (Skeleton t) a
