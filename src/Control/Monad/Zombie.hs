@@ -19,7 +19,9 @@ graftSpine c (Spine v d) = Spine v (Tree d c)
 {-# INLINE graftSpine #-}
 
 -- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
-data Zombie t a = Sunlight | Zombie (Spine t (Zombie t) a) (Zombie t a)
+data Zombie t a where
+  Sunlight :: Zombie t a
+  Zombie :: Spine t (Zombie t) a -> Zombie t a -> Zombie t a
 
 z_list :: Zombie t a -> [Spine t (Zombie t) a]
 z_list Sunlight = []
