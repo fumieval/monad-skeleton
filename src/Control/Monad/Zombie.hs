@@ -19,7 +19,15 @@ graftSpine c (Spine v d) = Spine v (Tree d c)
 {-# INLINE graftSpine #-}
 
 -- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
-newtype Zombie t a = Zombie { unZombie :: [Spine t (Zombie t) a] }
+data Zombie t a = Sunlight | Zombie (Spine t (Zombie t) a) (Zombie t a)
+
+z_list :: Zombie t a -> [Spine t (Zombie t) a]
+z_list Sunlight = []
+z_list (Zombie x xs) = x : z_list xs
+
+l_zombie :: [Spine t (Zombie t) a] -> Zombie t a
+l_zombie [] = Sunlight
+l_zombie (x : xs) = Zombie x (l_zombie xs)
 
 instance Functor (Zombie t) where
   fmap = liftM
@@ -30,12 +38,12 @@ instance Applicative (Zombie t) where
   (*>) = (>>)
 
 instance Alternative (Zombie t) where
-  empty = Zombie []
-  Zombie xs <|> Zombie ys = Zombie (xs ++ ys)
+  empty = Sunlight
+  xs <|> ys = l_zombie (z_list xs ++ z_list ys)
 
 instance Monad (Zombie t) where
-  return a = Zombie [Spine (Return a) id]
-  Zombie xs >>= k = Zombie $ map (graftSpine $ Leaf $ Kleisli k) xs
+  return a = l_zombie [Spine (Return a) id]
+  xs >>= k = l_zombie $ map (graftSpine $ Leaf $ Kleisli k) $ z_list xs
 
 instance MonadPlus (Zombie t) where
   mzero = empty
@@ -48,23 +56,23 @@ liftZ t = embalm (t :>>= return)
 
 -- | Turn a decomposed form into a composed form.
 embalm :: MonadView t (Zombie t) a -> Zombie t a
-embalm t = Zombie [Spine t id]
+embalm t = l_zombie [Spine t id]
 {-# INLINE embalm #-}
 
 -- | Decompose a zombie as a list of possibilities.
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
-disembalm (Zombie ss) = do
-  Spine v c <- ss
+disembalm ss = do
+  Spine v c <- z_list ss
   case v of
     Return a -> viewL c [Return a] $ \(Kleisli k) c' -> case k a of
-      Zombie ss' -> disembalm $ Zombie $ map (graftSpine c') ss'
+      ss' -> disembalm $ l_zombie $ map (graftSpine c') $ z_list ss'
     t :>>= k -> return $ t :>>= \a -> case k a of
-      Zombie ss' -> Zombie $ map (graftSpine c) ss'
+      ss' -> l_zombie $ map (graftSpine c) $ z_list ss'
 
 -- | Like 'hoistSkeleton'
 hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
 hoistZombie f = go where
   go :: forall x. Zombie s x -> Zombie t x
-  go (Zombie ss) = Zombie [Spine (hoistMV f go v) (transCat (transKleisli go) c)
-    | Spine v c <- ss]
+  go ss = l_zombie [Spine (hoistMV f go v) (transCat (transKleisli go) c)
+    | Spine v c <- z_list ss]
 {-# INLINE hoistZombie #-}
