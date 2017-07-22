@@ -30,13 +30,16 @@ l_zombie [] = Sunlight
 l_zombie (x : xs) = Zombie x (l_zombie xs)
 
 z_app :: Zombie t a -> Zombie t a -> Zombie t a
-z_app xs ys = l_zombie (z_list xs ++ z_list ys)
+z_app Sunlight ys = ys
+z_app (Zombie x xs) ys = Zombie x (z_app xs ys)
 
 z_map :: (Spine t (Zombie t) a -> Spine s (Zombie s) b) -> Zombie t a -> Zombie s b
-z_map f xs = l_zombie $ map f $ z_list xs
+z_map _ Sunlight = Sunlight
+z_map f (Zombie x xs) = Zombie (f x) (z_map f xs)
 
 zl_bind :: Zombie t a -> (Spine t (Zombie t) a -> [b]) -> [b]
-zl_bind xs f = z_list xs >>= f
+zl_bind Sunlight _ = []
+zl_bind (Zombie x xs) f = f x ++ zl_bind xs f
 
 instance Functor (Zombie t) where
   fmap = liftM
@@ -51,7 +54,7 @@ instance Alternative (Zombie t) where
   xs <|> ys = z_app xs ys
 
 instance Monad (Zombie t) where
-  return a = l_zombie [Spine (Return a) id]
+  return a = Zombie (Spine (Return a) id) Sunlight
   xs >>= k = z_map (graftSpine $ Leaf $ Kleisli k) xs
 
 instance MonadPlus (Zombie t) where
@@ -65,7 +68,7 @@ liftZ t = embalm (t :>>= return)
 
 -- | Turn a decomposed form into a composed form.
 embalm :: MonadView t (Zombie t) a -> Zombie t a
-embalm t = l_zombie [Spine t id]
+embalm t = Zombie (Spine t id) Sunlight
 {-# INLINE embalm #-}
 
 -- | Decompose a zombie as a list of possibilities.
