@@ -29,6 +29,15 @@ l_zombie :: [Spine t (Zombie t) a] -> Zombie t a
 l_zombie [] = Sunlight
 l_zombie (x : xs) = Zombie x (l_zombie xs)
 
+z_app :: Zombie t a -> Zombie t a -> Zombie t a
+z_app xs ys = l_zombie (z_list xs ++ z_list ys)
+
+z_map :: (Spine t (Zombie t) a -> Spine s (Zombie s) b) -> Zombie t a -> Zombie s b
+z_map f xs = l_zombie $ map f $ z_list xs
+
+zl_bind :: Zombie t a -> (Spine t (Zombie t) a -> [b]) -> [b]
+zl_bind xs f = z_list xs >>= f
+
 instance Functor (Zombie t) where
   fmap = liftM
 
@@ -39,11 +48,11 @@ instance Applicative (Zombie t) where
 
 instance Alternative (Zombie t) where
   empty = Sunlight
-  xs <|> ys = l_zombie (z_list xs ++ z_list ys)
+  xs <|> ys = z_app xs ys
 
 instance Monad (Zombie t) where
   return a = l_zombie [Spine (Return a) id]
-  xs >>= k = l_zombie $ map (graftSpine $ Leaf $ Kleisli k) $ z_list xs
+  xs >>= k = z_map (graftSpine $ Leaf $ Kleisli k) xs
 
 instance MonadPlus (Zombie t) where
   mzero = empty
@@ -61,18 +70,16 @@ embalm t = l_zombie [Spine t id]
 
 -- | Decompose a zombie as a list of possibilities.
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
-disembalm ss = do
-  Spine v c <- z_list ss
-  case v of
+disembalm ss = zl_bind ss f where
+  f (Spine v c) = case v of
     Return a -> viewL c [Return a] $ \(Kleisli k) c' -> case k a of
-      ss' -> disembalm $ l_zombie $ map (graftSpine c') $ z_list ss'
+      ss' -> disembalm $ z_map (graftSpine c') ss'
     t :>>= k -> return $ t :>>= \a -> case k a of
-      ss' -> l_zombie $ map (graftSpine c) $ z_list ss'
+      ss' -> z_map (graftSpine c) ss'
 
 -- | Like 'hoistSkeleton'
 hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
 hoistZombie f = go where
   go :: forall x. Zombie s x -> Zombie t x
-  go ss = l_zombie [Spine (hoistMV f go v) (transCat (transKleisli go) c)
-    | Spine v c <- z_list ss]
+  go ss = z_map (\(Spine v c) -> Spine (hoistMV f go v) (transCat (transKleisli go) c)) ss
 {-# INLINE hoistZombie #-}
