@@ -14,10 +14,6 @@ data Zombie t a where
   Sunlight :: Zombie t a
   Zombie :: MonadView t (Zombie t) x -> Cat (Kleisli (Zombie t)) x a -> Zombie t a -> Zombie t a
 
-z_app :: Zombie t a -> Zombie t a -> Zombie t a
-z_app Sunlight ys = ys
-z_app (Zombie v c xs) ys = Zombie v c (z_app xs ys)
-
 zg_map :: Cat (Kleisli (Zombie t)) a b -> Zombie t a -> Zombie t b
 zg_map _ Sunlight = Sunlight
 zg_map f (Zombie v c xs) = Zombie v (Tree c f) (zg_map f xs)
@@ -32,7 +28,8 @@ instance Applicative (Zombie t) where
 
 instance Alternative (Zombie t) where
   empty = Sunlight
-  xs <|> ys = z_app xs ys
+  Sunlight <|> ys = ys
+  Zombie v c xs <|> ys = Zombie v c (xs <|> ys)
 
 instance Monad (Zombie t) where
   return a = Zombie (Return a) id Sunlight
