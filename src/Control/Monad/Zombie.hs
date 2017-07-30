@@ -12,13 +12,8 @@ import Prelude hiding (id, (.))
 -- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
 data Zombie t a where
   Sunlight :: Zombie t a
-  ReturnZ :: x -> Cat (Kleisli (Zombie t)) x a -> Zombie t a -> Zombie t a
-  BindZ :: t y -> (y -> Zombie t x) -> Cat (Kleisli (Zombie t)) x a -> Zombie t a -> Zombie t a
-
-zg_map :: Cat (Kleisli (Zombie t)) a b -> Zombie t a -> Zombie t b
-zg_map _ Sunlight = Sunlight
-zg_map f (ReturnZ x c xs) = ReturnZ x (Tree c f) (zg_map f xs)
-zg_map f (BindZ y z c xs) = BindZ y z (Tree c f) (zg_map f xs)
+  ReturnZ :: a -> Zombie t a -> Zombie t a
+  BindZ :: t x -> Cat (Kleisli (Zombie t)) x a -> Zombie t a -> Zombie t a
 
 instance Functor (Zombie t) where
   fmap = liftM
@@ -31,12 +26,14 @@ instance Applicative (Zombie t) where
 instance Alternative (Zombie t) where
   empty = Sunlight
   Sunlight <|> ys = ys
-  ReturnZ x c xs <|> ys = ReturnZ x c (xs <|> ys)
-  BindZ y z c xs <|> ys = BindZ y z c (xs <|> ys)
+  ReturnZ x xs <|> ys = ReturnZ x (xs <|> ys)
+  BindZ x c xs <|> ys = BindZ x c (xs <|> ys)
 
 instance Monad (Zombie t) where
-  return a = ReturnZ a id Sunlight
-  xs >>= k = zg_map (Leaf $ Kleisli k) xs
+  return a = ReturnZ a Sunlight
+  Sunlight >>= _ = Sunlight
+  ReturnZ a xs >>= k = k a <|> (xs >>= k)
+  BindZ x c xs >>= k = BindZ x (c |> Kleisli k) (xs >>= k)
 
 instance MonadPlus (Zombie t) where
   mzero = empty
@@ -49,29 +46,30 @@ liftZ t = embalm (t :>>= return)
 
 -- | Turn a decomposed form into a composed form.
 embalm :: MonadView t (Zombie t) a -> Zombie t a
-embalm (Return x) = ReturnZ x id Sunlight
-embalm (y :>>= z) = BindZ y z id Sunlight
+embalm (Return x) = ReturnZ x Sunlight
+embalm (x :>>= k) = BindZ x (Leaf $ Kleisli k) Sunlight
 {-# INLINE embalm #-}
 
 -- | Decompose a zombie as a list of possibilities.
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
 disembalm Sunlight = []
-disembalm (ReturnZ x c xs) = disembalmR x c ++ disembalm xs
-disembalm (BindZ y z c xs) = disembalmB y z c ++ disembalm xs
+disembalm (ReturnZ x xs) = Return x : disembalm xs
+disembalm (BindZ x d xs) = (x :>>= disembalm_go d) : disembalm xs
 
-disembalmR :: a -> Cat (Kleisli (Zombie t)) a b -> [MonadView t (Zombie t) b]
-disembalmR a c = viewL c [Return a] $ \(Kleisli k) c' -> case k a of
-  ss' -> disembalm $ zg_map c' ss'
+disembalm_go :: Cat (Kleisli (Zombie t)) a b -> a -> Zombie t b
+disembalm_go c a = viewL c (ReturnZ a Sunlight) $ \(Kleisli k) c' -> disembalm_go2 (k a) c'
 
-disembalmB :: t a -> (a -> Zombie t b) -> Cat (Kleisli (Zombie t)) b c -> [MonadView t (Zombie t) c]
-disembalmB t k c = return $ t :>>= \a -> case k a of
-  ss' -> zg_map c ss'
+disembalm_go2 :: Zombie t a -> Cat (Kleisli (Zombie t)) a b -> Zombie t b
+disembalm_go2 x c = case x of
+  Sunlight -> Sunlight
+  ReturnZ a xs -> disembalm_go c a <|> disembalm_go2 xs c
+  BindZ t c' xs -> BindZ t (c . c') $ disembalm_go2 xs c
 
 -- | Like 'hoistSkeleton'
 hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
 hoistZombie f = go where
   go :: forall x. Zombie s x -> Zombie t x
   go Sunlight = Sunlight
-  go (ReturnZ x c xs) = ReturnZ x (transCat (transKleisli go) c) (go xs)
-  go (BindZ y z c xs) = BindZ (f y) (go . z) (transCat (transKleisli go) c) (go xs)
+  go (ReturnZ x xs) = ReturnZ x (go xs)
+  go (BindZ x c xs) = BindZ (f x) (transCat (transKleisli go) c) (go xs)
 {-# INLINE hoistZombie #-}
