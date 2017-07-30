@@ -2,7 +2,6 @@
 module Control.Monad.Zombie where
 import Control.Applicative
 import Control.Arrow
-import Control.Category
 import Control.Monad
 import Control.Monad.Skeleton
 import Control.Monad.Skeleton.Internal (transKleisli)
@@ -57,13 +56,13 @@ disembalm (ReturnZ x xs) = Return x : disembalm xs
 disembalm (BindZ x d xs) = (x :>>= disembalm_go d) : disembalm xs
 
 disembalm_go :: Cat (Kleisli (Zombie t)) a b -> a -> Zombie t b
-disembalm_go c a = viewL c (ReturnZ a Sunlight) $ \(Kleisli k) c' -> disembalm_go2 (k a) c'
+disembalm_go c a = viewL c (\(Kleisli k) -> k a) $ \(Kleisli k) c' -> disembalm_go2 (k a) c'
 
 disembalm_go2 :: Zombie t a -> Cat (Kleisli (Zombie t)) a b -> Zombie t b
 disembalm_go2 x c = case x of
   Sunlight -> Sunlight
   ReturnZ a xs -> disembalm_go c a <|> disembalm_go2 xs c
-  BindZ t c' xs -> BindZ t (c . c') $ disembalm_go2 xs c
+  BindZ t c' xs -> BindZ t (Tree c' c) $ disembalm_go2 xs c
 
 -- | Like 'hoistSkeleton'
 hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
