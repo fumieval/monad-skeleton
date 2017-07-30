@@ -1,5 +1,10 @@
 {-# LANGUAGE Rank2Types, ScopedTypeVariables, GADTs #-}
-module Control.Monad.Zombie where
+module Control.Monad.Zombie (Zombie(..)
+  , liftZ
+  , embalm
+  , disembalm
+  , hoistZombie
+  ) where
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
