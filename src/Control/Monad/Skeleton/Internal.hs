@@ -22,7 +22,7 @@ viewL :: forall k a b r. Cat k a b
   -> (forall x. k a x -> Cat k x b -> r)
   -> r
 viewL (Leaf k) e _ = e k
-viewL (Tree a b) e r = go a b where
+viewL (Tree a b) _ r = go a b where
   go :: Cat k a x -> Cat k x b -> r
   go (Leaf k) t = r k t
   go (Tree c d) t = go c (Tree d t)

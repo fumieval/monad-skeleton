@@ -4,8 +4,7 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Control.Monad.Skeleton
-import Control.Monad.Skeleton.Internal (transKleisli)
-import Control.Monad.Zombie.Internal
+import Control.Monad.Skeleton.Internal
 import Prelude hiding (id, (.))
 
 -- | 'Zombie' is a variant of 'Skeleton' which has an 'Alternative' instance.
