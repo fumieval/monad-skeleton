@@ -59,16 +59,17 @@ disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
 disembalm = disembalmBy [] (:)
 {-# INLINE disembalm #-}
 
--- | Decompose a zombie as a list of possibilitie and fold this list.
+-- | Decompose a zombie as a list of possibilitie and fold the list.
 disembalmBy :: r -> (MonadView t (Zombie t) a -> r -> r) -> Zombie t a -> r
 disembalmBy e r = go where
   go Sunlight = e
   go (ReturnZ x xs) = Return x `r` go xs
   go (BindZ x c xs) = (x :>>= disembalm_go c) `r` go xs
+{-# INLINE disembalmBy #-}
 
 disembalm_go :: Cat (Kleisli (Zombie t)) a b -> a -> Zombie t b
-disembalm_go c a = viewL c (\(Kleisli k) -> k a) $
-  \(Kleisli k) c' -> disembalm_go2 c' $ k a
+disembalm_go c a = viewL c (\k -> runKleisli k a) $
+  \k d -> disembalm_go2 d $ runKleisli k a
 
 disembalm_go2 :: Cat (Kleisli (Zombie t)) a b -> Zombie t a -> Zombie t b
 disembalm_go2 c = go where
