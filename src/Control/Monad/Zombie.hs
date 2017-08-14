@@ -3,6 +3,7 @@ module Control.Monad.Zombie (Zombie(..)
   , liftZ
   , embalm
   , disembalm
+  , disembalmBy
   , hoistZombie
   ) where
 import Control.Applicative
@@ -57,10 +58,17 @@ embalm (x :>>= k) = BindZ x (Leaf $ Kleisli k) Sunlight
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
 disembalm Sunlight = []
 disembalm (ReturnZ x xs) = Return x : disembalm xs
-disembalm (BindZ x d xs) = (x :>>= disembalm_go d) : disembalm xs
+disembalm (BindZ x c xs) = (x :>>= disembalm_go c) : disembalm xs
+
+-- | Decompose a zombie as a list of possibilitie and fold this list.
+disembalmBy :: Zombie t a -> r -> (r -> MonadView t (Zombie t) a -> r) -> r
+disembalmBy Sunlight e _ = e
+disembalmBy (ReturnZ x xs) e r = r (disembalmBy xs e r) $ Return x
+disembalmBy (BindZ x c xs) e r = r (disembalmBy xs e r) $ x :>>= disembalm_go c
 
 disembalm_go :: Cat (Kleisli (Zombie t)) a b -> a -> Zombie t b
-disembalm_go c a = viewL c (\(Kleisli k) -> k a) $ \(Kleisli k) c' -> disembalm_go2 (k a) c'
+disembalm_go c a = viewL c (\(Kleisli k) -> k a) $
+  \(Kleisli k) c' -> disembalm_go2 (k a) c'
 
 disembalm_go2 :: Zombie t a -> Cat (Kleisli (Zombie t)) a b -> Zombie t b
 disembalm_go2 x c = case x of
