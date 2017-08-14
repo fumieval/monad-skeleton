@@ -56,25 +56,25 @@ embalm (x :>>= k) = BindZ x (Leaf $ Kleisli k) Sunlight
 
 -- | Decompose a zombie as a list of possibilities.
 disembalm :: Zombie t a -> [MonadView t (Zombie t) a]
-disembalm Sunlight = []
-disembalm (ReturnZ x xs) = Return x : disembalm xs
-disembalm (BindZ x c xs) = (x :>>= disembalm_go c) : disembalm xs
+disembalm = disembalmBy [] (:)
+{-# INLINE disembalm #-}
 
 -- | Decompose a zombie as a list of possibilitie and fold this list.
-disembalmBy :: Zombie t a -> r -> (r -> MonadView t (Zombie t) a -> r) -> r
-disembalmBy Sunlight e _ = e
-disembalmBy (ReturnZ x xs) e r = r (disembalmBy xs e r) $ Return x
-disembalmBy (BindZ x c xs) e r = r (disembalmBy xs e r) $ x :>>= disembalm_go c
+disembalmBy :: r -> (MonadView t (Zombie t) a -> r -> r) -> Zombie t a -> r
+disembalmBy e r = go where
+  go Sunlight = e
+  go (ReturnZ x xs) = Return x `r` go xs
+  go (BindZ x c xs) = (x :>>= disembalm_go c) `r` go xs
 
 disembalm_go :: Cat (Kleisli (Zombie t)) a b -> a -> Zombie t b
 disembalm_go c a = viewL c (\(Kleisli k) -> k a) $
-  \(Kleisli k) c' -> disembalm_go2 (k a) c'
+  \(Kleisli k) c' -> disembalm_go2 c' $ k a
 
-disembalm_go2 :: Zombie t a -> Cat (Kleisli (Zombie t)) a b -> Zombie t b
-disembalm_go2 x c = case x of
-  Sunlight -> Sunlight
-  ReturnZ a xs -> disembalm_go c a <|> disembalm_go2 xs c
-  BindZ t c' xs -> BindZ t (Tree c' c) $ disembalm_go2 xs c
+disembalm_go2 :: Cat (Kleisli (Zombie t)) a b -> Zombie t a -> Zombie t b
+disembalm_go2 c = go where
+  go Sunlight = Sunlight
+  go (ReturnZ a xs) = disembalm_go c a <|> go xs
+  go (BindZ t d xs) = BindZ t (Tree d c) $ go xs
 
 -- | Like 'hoistSkeleton'
 hoistZombie :: forall s t a. (forall x. s x -> t x) -> Zombie s a -> Zombie t a
