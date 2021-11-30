@@ -18,13 +18,13 @@ import Control.Category
 import Control.Monad.Skeleton.Internal
 import Prelude hiding (id, (.))
 
--- | Re-add a bone.
+-- | Re-add a bone. Inverse of 'debone'
 boned :: MonadView t (Skeleton t) a -> Skeleton t a
 boned (Return a) = ReturnS a
 boned (t :>>= k) = BindS t $ Leaf $ Kleisli k
 {-# INLINE boned #-}
 
--- | Pick a bone from a 'Skeleton'.
+-- | Extract the first instruction in 'Skeleton'.
 debone :: Skeleton t a -> MonadView t (Skeleton t) a
 debone (ReturnS a) = Return a
 debone (BindS t c0) = t :>>= go c0 where
@@ -33,8 +33,8 @@ debone (BindS t c0) = t :>>= go c0 where
     ReturnS b -> go c' b
     BindS t' c'' -> BindS t' (Tree c'' c')
 
--- | Pick a bone from a 'Skeleton' by a function.
--- It's useful when used with @LambdaCase@.
+-- | Continuation-passing variant of 'debone'
+-- which allows nicer expression using @LambdaCase@.
 --
 -- Usecase:
 --
@@ -70,7 +70,7 @@ instance Functor m => Functor (MonadView t m) where
   fmap f (t :>>= k) = t :>>= fmap f . k
   {-# INLINE fmap #-}
 
--- | Transform the action and the continuation.
+-- | Transform the instruction as well as the continuation.
 hoistMV :: (forall x. s x -> t x) -> (m a -> n a) -> MonadView s m a -> MonadView t n a
 hoistMV _ _ (Return a) = Return a
 hoistMV f g (t :>>= k) = f t :>>= g . k
@@ -85,8 +85,8 @@ iterMV f = go where
 {-# INLINE iterMV #-}
 
 -- | @'Skeleton' t@ is a monadic skeleton (operational monad) made out of 't'.
--- Skeletons can be fleshed out by getting transformed to other monads.
--- It provides O(1) ('>>=') and 'debone', the monadic reflection.
+-- Skeletons can be fleshed out by interpreting the instructions.
+-- It provides O(1) ('>>=') and 'debone'.
 data Skeleton t a where
   ReturnS :: a -> Skeleton t a
   BindS :: t a -> Cat (Kleisli (Skeleton t)) a b -> Skeleton t b

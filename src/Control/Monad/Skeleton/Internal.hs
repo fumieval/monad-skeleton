@@ -1,6 +1,6 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL, transKleisli) where
@@ -8,6 +8,7 @@ module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL, transKle
 import Control.Arrow
 import Unsafe.Coerce
 
+-- | Type-aligned catenable queue
 data Cat k a b where
   Leaf :: k a b -> Cat k a b
   Tree :: Cat k a b -> Cat k b c -> Cat k a c
@@ -21,6 +22,7 @@ transCat f (Leaf k) = Leaf (f k)
 s |> k = Tree s (Leaf k)
 {-# INLINE (|>) #-}
 
+-- | Match on the leftmost element. It gradually rotates the nodes so that following calls to 'viewL' is faster.
 viewL :: forall k a b r. Cat k a b
   -> (k a b -> r)
   -> (forall x. k a x -> Cat k x b -> r)
