@@ -1,4 +1,6 @@
-{-# LANGUAGE BangPatterns, RankNTypes, GADTs, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Control.Monad.Skeleton (MonadView(..)
   , hoistMV
   , iterMV
@@ -101,15 +103,14 @@ instance Functor (Skeleton t) where
   {-# INLINE fmap #-}
 
 instance Applicative (Skeleton t) where
-  pure = return
+  pure = ReturnS
   {-# INLINE pure #-}
   (<*>) = ap
   {-# INLINE (<*>) #-}
-  (*>) = (>>)
-  {-# INLINE (*>) #-}
+  ReturnS _ *> k = k
+  BindS t c *> k = BindS t (c |> Kleisli (const k))
   a <* b = a >>= \x -> b >> return x
 
 instance Monad (Skeleton t) where
-  return = ReturnS
   ReturnS a >>= k = k a
   BindS t c >>= k = BindS t (c |> Kleisli k)

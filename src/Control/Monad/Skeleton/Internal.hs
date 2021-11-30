@@ -1,4 +1,8 @@
-{-# LANGUAGE PolyKinds, GADTs, Rank2Types, ScopedTypeVariables, Trustworthy #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Trustworthy #-}
 module Control.Monad.Skeleton.Internal (Cat(..), transCat, (|>), viewL, transKleisli) where
 
 import Control.Arrow

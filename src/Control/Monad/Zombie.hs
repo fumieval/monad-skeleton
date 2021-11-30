@@ -1,4 +1,6 @@
-{-# LANGUAGE Rank2Types, ScopedTypeVariables, GADTs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Control.Monad.Zombie (Zombie(..)
   , liftZ
   , embalm
@@ -23,9 +25,11 @@ instance Functor (Zombie t) where
   fmap = liftM
 
 instance Applicative (Zombie t) where
-  pure = return
+  pure a = ReturnZ a Sunlight
   (<*>) = ap
-  (*>) = (>>)
+  Sunlight *> _ = Sunlight
+  ReturnZ _ xs *> k = k <|> (xs *> k)
+  BindZ x c xs *> k = BindZ x (c |> Kleisli (const k)) (xs *> k)
 
 instance Alternative (Zombie t) where
   empty = Sunlight
@@ -34,7 +38,6 @@ instance Alternative (Zombie t) where
   BindZ x c xs <|> ys = BindZ x c (xs <|> ys)
 
 instance Monad (Zombie t) where
-  return a = ReturnZ a Sunlight
   Sunlight >>= _ = Sunlight
   ReturnZ a xs >>= k = k a <|> (xs >>= k)
   BindZ x c xs >>= k = BindZ x (c |> Kleisli k) (xs >>= k)
