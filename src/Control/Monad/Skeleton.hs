@@ -8,7 +8,6 @@ module Control.Monad.Skeleton (MonadView(..)
   , bone
   , debone
   , deboneBy
-  , unbone
   , boned
   , hoistSkeleton
   ) where
@@ -46,12 +45,6 @@ debone (BindS t c0) = t :>>= go c0 where
 deboneBy :: (MonadView t (Skeleton t) a -> r) -> Skeleton t a -> r
 deboneBy f s = f (debone s)
 {-# INLINE deboneBy #-}
-
--- | Uncommon synonym for 'debone'.
-unbone :: Skeleton t a -> MonadView t (Skeleton t) a
-unbone = debone
-{-# INLINE unbone #-}
-{-# DEPRECATED unbone "Use debone instead" #-}
 
 -- | A skeleton that has only one bone.
 bone :: t a -> Skeleton t a
